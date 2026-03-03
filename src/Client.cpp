@@ -46,6 +46,7 @@ void Client::handle_connect(const asio::error_code& error) {
     }
 }
 
+// what's this?
 void Client::handle_message(const std::string& message) {
     std::cout << "[Client] Message received: \"" << message << "\"" << std::endl;
     if (message.find("ACK") != std::string::npos) {
