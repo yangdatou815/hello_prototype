@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  # ──────────────────────────────────────────────────────────────
+  # Job 1: Build + Unit Tests
+  # ──────────────────────────────────────────────────────────────
+  unit-tests:
+    name: Build & Unit Tests
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            cmake \
+            build-essential \
+            libssl-dev \
+            git \
+            ca-certificates
+
+      - name: Configure CMake
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+
+      - name: Build
+        run: cmake --build build --parallel $(nproc)
+
+      - name: Run Unit Tests
+        run: |
+          ./build/test/ut/ut_greeter \
+            --gtest_color=yes \
+            --gtest_output=xml:build/ut-results.xml
+
+      - name: Upload UT results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ut-results
+          path: build/ut-results.xml
+
+  # ──────────────────────────────────────────────────────────────
+  # Job 2: System Component Tests (pytest / tox)
+  # Depends on unit-tests so the binary is already known to build.
+  # ──────────────────────────────────────────────────────────────
+  sct:
+    name: System Component Tests
+    runs-on: ubuntu-24.04
+    needs: unit-tests          # run only after UT job succeeds
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            cmake \
+            build-essential \
+            libssl-dev \
+            git \
+            ca-certificates \
+            iproute2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python test tools
+        run: pip install tox
+
+      - name: Configure CMake
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build hello_app
+        run: cmake --build build --parallel $(nproc) --target hello_app
+
+      - name: Create SCT log directory
+        run: mkdir -p test/sct/logs
+
+      - name: Run SCTs via tox
+        run: |
+          cd test/sct
+          python3 -m tox -e test-hello -- -v \
+            --junit-xml=logs/sct-junit.xml
+
+      - name: Upload SCT results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sct-results
+          path: test/sct/logs/sct-junit.xml
