@@ -24,7 +24,7 @@ int main(int argc, char* argv[]) {
 
     try {
         asio::io_context io_context;
-        std::cout << "[main] Starting in role: " << role << std::endl;
+        std::cout << "[main] Starting in role:: " << role << std::endl;
 
         if (role == "server") {
             std::cout << "[main] Constructing Server on port " << DEFAULT_PORT << std::endl;
