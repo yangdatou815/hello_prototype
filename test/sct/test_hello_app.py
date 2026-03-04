@@ -8,31 +8,24 @@ from sct_helpers import AppSimulator, PythonClient, print_tcp_state
 # Test cases
 # ─────────────────────────────────────────────
 def test_hello_exception(app_path):
-    """
-    Tests that the application handles the --throw flag correctly.
-    The app should print an error to stderr and exit with a non-zero code.
-    """
+    """Tests that --throw exits with error."""
     print("\n[SCT] ===== test_hello_exception =====")
     simulator = AppSimulator(app_path)
     simulator.start(args=["--throw"])
     error_output = simulator.get_error_output()
     print(f"[SCT] stderr: {error_output}")
-    print(f"[SCT] returncode: {simulator.process.returncode}")
     assert "Caught exception: Exception from Greeter" in error_output
     assert simulator.process.returncode != 0
     print("[SCT] test_hello_exception PASSED")
 
 
 def test_no_role_prints_usage(app_path):
-    """
-    Tests that running the app with no arguments prints a usage message.
-    """
+    """Tests that no args prints usage."""
     print("\n[SCT] ===== test_no_role_prints_usage =====")
     simulator = AppSimulator(app_path)
     simulator.start()
     error_output = simulator.get_error_output()
     print(f"[SCT] stderr: {error_output}")
-    print(f"[SCT] returncode: {simulator.process.returncode}")
     assert "Usage:" in error_output
     assert simulator.process.returncode != 0
     print("[SCT] test_no_role_prints_usage PASSED")
@@ -40,127 +33,121 @@ def test_no_role_prints_usage(app_path):
 
 def test_client_server_handshake(app_path):
     """
-    Tests the full client-server hello handshake:
-    1. Start the server in background.
-    2. Start the client.
-    3. Verify the client reaches ONLINE state after receiving ACK from server.
-    The client maintains a persistent connection after handshake,
-    so we read stdout line-by-line with a timeout and then terminate.
+    Tests the 3-step handshake:
+      Client → DETECTED → Server
+      Server → CONNECTED → Client
+      Client → ONLINE   → Server
+      Server → ACK: ONLINE → Client  (client reaches ONLINE state)
     """
     print("\n[SCT] ===== test_client_server_handshake =====")
     server = AppSimulator(app_path)
     client = AppSimulator(app_path)
 
     try:
-        # Step 1: Start server
         print("[SCT] Step 1: Starting server...")
         server.start(args=["--role", "server"])
-        print(f"[SCT] Waiting 0.5s for server to bind port...")
         time.sleep(0.5)
-        print("[SCT] Server should be ready.")
         print_tcp_state("after server start (LISTEN expected)")
 
-        # Step 2: Start client
         print("[SCT] Step 2: Starting client...")
         client.start(args=["--role", "client"])
         time.sleep(0.2)
-        print_tcp_state("after client start (SYN/ESTABLISHED expected)")
+        print_tcp_state("after client start (ESTABLISHED expected)")
 
-        # Step 3: Read client stdout line by line until handshake complete or timeout
-        print("[SCT] Step 3: Reading client stdout (timeout=5s)...")
+        print("[SCT] Step 3: Reading client stdout (timeout=8s)...")
         collected = []
-        deadline = time.time() + 5.0
+        deadline = time.time() + 8.0
         while time.time() < deadline:
             line = client.process.stdout.readline()
             if line:
                 collected.append(line.strip())
                 print(f"[SCT][Client stdout] {line.strip()}")
                 if "Handshake complete" in line:
-                    print("[SCT] Handshake complete line detected, stopping read.")
+                    print("[SCT] Handshake complete detected.")
                     print_tcp_state("after handshake complete (ESTABLISHED expected)")
                     break
         else:
-            print("[SCT] WARNING: Timeout reached before 'Handshake complete' was seen.")
+            print("[SCT] WARNING: Timeout before 'Handshake complete'.")
 
         client_output = "\n".join(collected)
 
-        # Step 4: Assert
-        print("[SCT] Step 4: Asserting client output...")
-        assert "State changed to: ONLINE" in client_output, \
-            f"Expected 'State changed to: ONLINE', got:\n{client_output}"
-        assert "Handshake complete" in client_output, \
-            f"Expected 'Handshake complete', got:\n{client_output}"
+        print("[SCT] Step 4: Asserting...")
+        assert "State changed to: DETECTED"  in client_output, \
+            f"Missing DETECTED in:\n{client_output}"
+        assert "State changed to: CONNECTED" in client_output, \
+            f"Missing CONNECTED in:\n{client_output}"
+        assert "State changed to: ONLINE"    in client_output, \
+            f"Missing ONLINE in:\n{client_output}"
+        assert "Handshake complete"          in client_output, \
+            f"Missing 'Handshake complete' in:\n{client_output}"
         print("[SCT] All assertions passed.")
 
     finally:
-        print("[SCT] Cleanup: stopping client and server...")
         client.stop()
-        print_tcp_state("after client stop (TIME_WAIT/CLOSE_WAIT expected)")
+        print_tcp_state("after client stop")
         server.stop()
-        print_tcp_state("after server stop (no connections expected)")
+        print_tcp_state("after server stop")
         print("[SCT] test_client_server_handshake DONE")
 
 
-def test_server_receives_hello_and_replies_ack(app_path):
+def test_server_receives_handshake_and_replies(app_path):
     """
-    SCT acts as the client:
-    1. Start the real Server process.
-    2. SCT connects via a raw Python socket (PythonClient).
-    3. SCT sends 'Hello, World!' to the Server.
-    4. Verify Server replies with 'ACK: Hello, World!'.
-    5. Send an unknown message and verify Server does NOT reply
-       (connection stays open, no data within timeout).
+    SCT acts as fake client and drives the 3-step handshake manually:
+      SCT  → DETECTED  → Server  (expects CONNECTED back)
+      SCT  → ONLINE    → Server  (expects ACK: ONLINE back)
+      SCT  → UNKNOWN   → Server  (expects no reply)
     """
-    print("\n[SCT] ===== test_server_receives_hello_and_replies_ack =====")
+    print("\n[SCT] ===== test_server_receives_handshake_and_replies =====")
 
     server = AppSimulator(app_path)
     py_client = PythonClient(host="127.0.0.1", port=9000)
 
     try:
-        # Step 1: Start the real server
-        print("[SCT] Step 1: Starting server process...")
+        print("[SCT] Step 1: Starting server...")
         server.start(args=["--role", "server"])
-        print("[SCT] Waiting 0.5s for server to bind port...")
         time.sleep(0.5)
-        print("[SCT] Server should be ready.")
         print_tcp_state("after server start (LISTEN expected)")
 
-        # Step 2: SCT connects as a fake client
         print("[SCT] Step 2: PythonClient connecting...")
         py_client.connect()
         time.sleep(0.1)
         print_tcp_state("after PythonClient connect (ESTABLISHED expected)")
 
-        # Step 3: Send the handshake message
-        print("[SCT] Step 3: Sending 'Hello, World!'...")
-        py_client.send("Hello, World!")
-
-        # Step 4: Verify ACK reply
-        print("[SCT] Step 4: Waiting for ACK...")
+        # Handshake step 1
+        print("[SCT] Step 3: Sending 'DETECTED'...")
+        py_client.send("DETECTED")
         reply = py_client.receive()
         print(f"[SCT] Server replied: \"{reply}\"")
-        print_tcp_state("after ACK received (ESTABLISHED expected)")
-        assert reply == "ACK: Hello, World!", \
-            f"Expected 'ACK: Hello, World!', got: '{reply}'"
-        print("[SCT] ACK assertion passed.")
+        print_tcp_state("after DETECTED/CONNECTED exchange")
+        assert reply == "CONNECTED", \
+            f"Expected 'CONNECTED', got: '{reply}'"
+        print("[SCT] CONNECTED assertion passed.")
 
-        # Step 5: Send an unknown message, expect no reply (timeout)
+        # Handshake step 3
+        print("[SCT] Step 4: Sending 'ONLINE'...")
+        py_client.send("ONLINE")
+        reply = py_client.receive()
+        print(f"[SCT] Server replied: \"{reply}\"")
+        print_tcp_state("after ONLINE/ACK:ONLINE exchange")
+        assert reply == "ACK: ONLINE", \
+            f"Expected 'ACK: ONLINE', got: '{reply}'"
+        print("[SCT] ACK: ONLINE assertion passed.")
+
+        # Unknown message — no reply expected
         print("[SCT] Step 5: Sending unknown message, expecting no reply...")
         py_client.send("UNKNOWN_MSG")
         try:
             unexpected = py_client.receive()
-            assert False, \
-                f"Server should not reply to unknown message, but got: '{unexpected}'"
+            assert False, f"Server should not reply, but got: '{unexpected}'"
         except (TimeoutError, socket.timeout):
-            print("[SCT] Correctly got no reply for unknown message (socket timeout).")
+            print("[SCT] Correctly got no reply (socket timeout).")
 
         print("[SCT] All assertions passed.")
 
     finally:
-        print("[SCT] Cleanup: closing PythonClient and stopping server...")
         py_client.close()
         time.sleep(0.1)
-        print_tcp_state("after PythonClient close (TIME_WAIT/CLOSE_WAIT expected)")
+        print_tcp_state("after PythonClient close")
         server.stop()
-        print_tcp_state("after server stop (no connections expected)")
-        print("[SCT] test_server_receives_hello_and_replies_ack DONE")
+        print_tcp_state("after server stop")
+        print("[SCT] test_server_receives_handshake_and_replies DONE")

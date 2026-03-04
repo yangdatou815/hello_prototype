@@ -10,7 +10,13 @@ PeerState Peer::getState() const {
 }
 
 std::string Peer::getStateStr() const {
-    return (state_ == PeerState::ONLINE) ? "ONLINE" : "OFFLINE";
+    switch (state_) {
+        case PeerState::OFFLINE:   return "OFFLINE";
+        case PeerState::DETECTED:  return "DETECTED";
+        case PeerState::CONNECTED: return "CONNECTED";
+        case PeerState::ONLINE:    return "ONLINE";
+        default:                   return "UNKNOWN";
+    }
 }
 
 void Peer::setState(PeerState state) {

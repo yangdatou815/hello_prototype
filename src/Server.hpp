@@ -3,7 +3,9 @@
 
 #include "Peer.hpp"
 #include "Session.hpp"
+#include "Database.hpp"
 #include <asio.hpp>
+#include <memory>
 
 using asio::ip::tcp;
 
@@ -16,8 +18,9 @@ private:
     void accept();
     void handle_message(std::shared_ptr<Session> session, const std::string& message);
 
-    tcp::acceptor acceptor_;
-    asio::io_context& io_context_;
+    tcp::acceptor              acceptor_;
+    asio::io_context&          io_context_;
+    std::unique_ptr<Database>  db_;
 };
 
 #endif // SERVER_HPP

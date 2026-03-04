@@ -1,4 +1,5 @@
 #include "Client.hpp"
+#include "Database.hpp"
 #include <iostream>
 
 Client::Client(asio::io_context& io_context,
@@ -8,8 +9,10 @@ Client::Client(asio::io_context& io_context,
       resolver_(io_context),
       socket_(io_context),
       host_(host),
-      port_(port) {
+      port_(port),
+      db_(std::make_unique<Database>("client.db")) {
     std::cout << "[Client] Constructed. Target: " << host << ":" << port << std::endl;
+    db_->updatePeerState("server", PeerState::OFFLINE);
 }
 
 void Client::connect() {
@@ -35,22 +38,38 @@ void Client::handle_connect(const asio::error_code& error) {
             [this](const std::string& msg) { handle_message(msg); },
             [this]() {
                 std::cerr << "[Client] Connection lost. State: " << getStateStr() << std::endl;
+                db_->updatePeerState("server", PeerState::OFFLINE);
+                setState(PeerState::OFFLINE);
             }
         );
         session_->start();
 
-        std::cout << "[Client] Sending handshake: \"Hello, World!\"" << std::endl;
-        session_->write("Hello, World!");
+        // Step 1: send DETECTED
+        setState(PeerState::DETECTED);
+        db_->updatePeerState("server", PeerState::DETECTED);
+        std::cout << "[Client] Handshake step 1: sending \"DETECTED\"" << std::endl;
+        session_->write("DETECTED");
     } else {
         std::cerr << "[Client] Connection failed: " << error.message() << std::endl;
     }
 }
 
-// what's this?
 void Client::handle_message(const std::string& message) {
     std::cout << "[Client] Message received: \"" << message << "\"" << std::endl;
-    if (message.find("ACK") != std::string::npos) {
+
+    // Store every received message
+    db_->insertMessage("server", message);
+
+    if (message == "CONNECTED" && getState() == PeerState::DETECTED) {
+        // Step 2 ACK received: advance to CONNECTED, send ONLINE
+        setState(PeerState::CONNECTED);
+        db_->updatePeerState("server", PeerState::CONNECTED);
+        std::cout << "[Client] Handshake step 3: sending \"ONLINE\"" << std::endl;
+        session_->write("ONLINE");
+    } else if (message == "ACK: ONLINE" && getState() == PeerState::CONNECTED) {
+        // Step 3 ACK received: handshake complete
         setState(PeerState::ONLINE);
+        db_->updatePeerState("server", PeerState::ONLINE);
         std::cout << "[Client] Handshake complete. State: " << getStateStr() << std::endl;
     } else {
         std::cout << "[Client] Unrecognised message, ignoring." << std::endl;

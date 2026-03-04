@@ -4,8 +4,10 @@
 #include <string>
 
 enum class PeerState {
-    OFFLINE,
-    ONLINE
+    OFFLINE,     // not connected
+    DETECTED,    // TCP connected, handshake step 1 sent
+    CONNECTED,   // handshake step 2 acknowledged
+    ONLINE       // handshake complete, fully operational
 };
 
 class Peer {

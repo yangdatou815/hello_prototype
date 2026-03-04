@@ -24,6 +24,9 @@ Makefile
 *.swp
 *.swo
 
+# SQLite databases (runtime artifacts)
+*.db
+
 # Logs
 test/sct/logs/*.xml
 
