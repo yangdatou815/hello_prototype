@@ -1,4 +1,5 @@
 #include "Session.hpp"
+#include "Crypto.hpp"
 #include <iostream>
 
 Session::Session(tcp::socket socket,
@@ -22,9 +23,17 @@ void Session::set_on_message(std::function<void(const std::string&)> on_message)
 }
 
 void Session::write(const std::string& msg) {
-    std::cout << "[Session] >> Sending " << msg.size() << " bytes: \"" << msg << "\"" << std::endl;
+    std::string encrypted;
+    try {
+        encrypted = Crypto::encrypt(msg);
+    } catch (const std::exception& e) {
+        std::cerr << "[Session] Encrypt error: " << e.what() << std::endl;
+        return;
+    }
+    std::cout << "[Session] >> Sending " << msg.size() << " bytes (plain): \"" << msg << "\"" << std::endl;
+    std::cout << "[Session] >> Encrypted (" << encrypted.size() << " bytes B64): \"" << encrypted << "\"" << std::endl;
     auto self(shared_from_this());
-    asio::async_write(socket_, asio::buffer(msg + "\n"),
+    asio::async_write(socket_, asio::buffer(encrypted + "\n"),
         [this, self](const asio::error_code& error, size_t bytes) {
             if (!error) {
                 std::cout << "[Session] >> Send OK (" << bytes << " bytes written)" << std::endl;
@@ -53,10 +62,21 @@ void Session::handle_read(const asio::error_code& error, size_t bytes_transferre
             message.pop_back();
         }
 
-        std::cout << "[Session] << Received message: \"" << message << "\"" << std::endl;
+        std::cout << "[Session] << Received encrypted (" << message.size() << " bytes B64): \"" << message << "\"" << std::endl;
+
+        std::string decrypted;
+        try {
+            decrypted = Crypto::decrypt(message);
+        } catch (const std::exception& e) {
+            std::cerr << "[Session] Decrypt error: " << e.what() << std::endl;
+            read();
+            return;
+        }
+
+        std::cout << "[Session] << Decrypted message: \"" << decrypted << "\"" << std::endl;
 
         if (on_message_) {
-            on_message_(message);
+            on_message_(decrypted);
         }
         read();
     } else {

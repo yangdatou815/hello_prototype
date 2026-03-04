@@ -4,10 +4,13 @@ add_library(hello_lib
     Session.cpp
     Server.cpp
     Client.cpp
+    Crypto.cpp
 )
 
 target_include_directories(hello_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(hello_lib PUBLIC asio_lib)
+
+find_package(OpenSSL REQUIRED)
+target_link_libraries(hello_lib PUBLIC asio_lib OpenSSL::SSL OpenSSL::Crypto)
 
 # Add an executable
 add_executable(hello_app main.cpp)

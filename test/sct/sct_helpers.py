@@ -1,5 +1,30 @@
+import base64
 import socket
 import subprocess
+
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad, unpad
+
+# ─────────────────────────────────────────────
+# Shared AES-256-CBC key / IV
+# Must match the hardcoded values in Crypto.cpp
+# ─────────────────────────────────────────────
+_AES_KEY = bytes(range(0x00, 0x20))          # 32 bytes: 0x00..0x1f
+_AES_IV  = bytes(range(0xa0, 0xb0))          # 16 bytes: 0xa0..0xaf
+
+
+def _aes_encrypt(plaintext: str) -> str:
+    """AES-256-CBC encrypt, return Base64 string."""
+    cipher = AES.new(_AES_KEY, AES.MODE_CBC, _AES_IV)
+    ct = cipher.encrypt(pad(plaintext.encode(), AES.block_size))
+    return base64.b64encode(ct).decode()
+
+
+def _aes_decrypt(b64_ciphertext: str) -> str:
+    """Base64 → AES-256-CBC decrypt, return plaintext string."""
+    ct = base64.b64decode(b64_ciphertext)
+    cipher = AES.new(_AES_KEY, AES.MODE_CBC, _AES_IV)
+    return unpad(cipher.decrypt(ct), AES.block_size).decode()
 
 
 # ─────────────────────────────────────────────
@@ -91,13 +116,15 @@ class PythonClient:
         print(f"[SCT][PythonClient] Connected.")
 
     def send(self, msg: str):
-        """Send a message. Appends '\n' as the frame delimiter."""
-        raw = (msg + "\n").encode()
-        print(f"[SCT][PythonClient] >> Sending: \"{msg}\" ({len(raw)} bytes)")
+        """Encrypt msg with AES-256-CBC, send as Base64 line."""
+        encrypted = _aes_encrypt(msg)
+        raw = (encrypted + "\n").encode()
+        print(f"[SCT][PythonClient] >> Sending (plain): \"{msg}\"")
+        print(f"[SCT][PythonClient] >> Sending (B64):   \"{encrypted}\" ({len(raw)} bytes)")
         self._sock.sendall(raw)
 
     def receive(self) -> str:
-        """Read one line (delimited by '\n') from the server."""
+        """Read one Base64 line from server, decrypt and return plaintext."""
         print(f"[SCT][PythonClient] << Waiting for response (timeout={self.DEFAULT_TIMEOUT}s)...")
         buf = b""
         while b"\n" not in buf:
@@ -105,9 +132,11 @@ class PythonClient:
             if not chunk:
                 raise ConnectionError("[SCT][PythonClient] Connection closed by server.")
             buf += chunk
-        line = buf.split(b"\n")[0].decode().strip()
-        print(f"[SCT][PythonClient] << Received: \"{line}\"")
-        return line
+        b64_line = buf.split(b"\n")[0].decode().strip()
+        decrypted = _aes_decrypt(b64_line)
+        print(f"[SCT][PythonClient] << Received (B64):   \"{b64_line}\"")
+        print(f"[SCT][PythonClient] << Received (plain): \"{decrypted}\"")
+        return decrypted
 
     def close(self):
         if self._sock:
