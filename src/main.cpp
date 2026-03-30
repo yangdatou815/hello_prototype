@@ -9,6 +9,7 @@
 
 static const unsigned short DEFAULT_PORT = 9000;
 
+//main
 int main(int argc, char* argv[]) {
     std::vector<std::string> args(argv + 1, argv + argc);
     std::string role;

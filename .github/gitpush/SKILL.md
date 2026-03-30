@@ -1,6 +1,6 @@
 # 提交流程（仓库贡献指南）
 
-此文档依据开源仓库常见实践整理，放在 `.github/skill.md` 便于仓库协作者快速查阅。
+此文档依据开源仓库常见实践整理，放在 `.github/gitpush/SKILL.md` 便于仓库协作者快速查阅。
 
 目的
 - 规范本仓库的构建、测试、提交与推送流程，提升代码质量与协作效率。
@@ -58,5 +58,4 @@ ctest --output-on-failure -j
 - 增加 GitHub Actions：自动化构建、测试、lint；为主分支设置分支保护策略。
 
 附录
-- 文档文件已放置：`.github/skill.md`
-- 若需要将此内容作为 CONTRIBUTING 或其他文件，请告知，我将同时生成标准的 `CONTRIBUTING.md`。
+- 文档文件已放置：`.github/gitpush/SKILL.md`
