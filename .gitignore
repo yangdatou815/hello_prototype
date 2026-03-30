@@ -34,3 +34,6 @@ test/sct/logs/*.xml
 .DS_Store
 Thumbs.db
 .venv/
+Testing/
+*.db-journal
+.tmp_sct_venv/
