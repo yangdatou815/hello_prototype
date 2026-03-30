@@ -65,6 +65,7 @@ void Client::handle_message(const std::string& message) {
     if (message == "CONNECTED" && getState() == PeerState::DETECTED) {
         // Step 2 ACK received: advance to CONNECTED, send ONLINE
         setState(PeerState::CONNECTED);
+        std::cout << "[Peer] State changed to: CONNECTED (was: DETECTED)" << std::endl; // This line will be added
         db_->updatePeerState("server", PeerState::CONNECTED);
         std::cout << "[Client] Handshake step 3: sending \"ONLINE\"" << std::endl;
         session_->write("ONLINE");
