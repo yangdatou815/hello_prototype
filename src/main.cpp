@@ -9,7 +9,7 @@
 
 static const unsigned short DEFAULT_PORT = 9000;
 
-//main
+//main function parses command-line arguments to determine whether to run as a server or client, and then initializes the appropriate class. It also sets up signal handling for graceful shutdown on Ctrl+C. The server listens for incoming connections, while the client attempts to connect to the server and starts a session. Both roles run their respective io_contexts until they are stopped (e.g., by a signal or an error).
 int main(int argc, char* argv[]) {
     std::vector<std::string> args(argv + 1, argv + argc);
     std::string role;
