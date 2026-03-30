@@ -15,6 +15,7 @@ Client::Client(asio::io_context& io_context,
     db_->updatePeerState("server", PeerState::OFFLINE);
 }
 
+//client connect
 void Client::connect() {
     std::cout << "[Client] Resolving " << host_ << ":" << port_ << "..." << std::endl;
     auto endpoints = resolver_.resolve(host_, std::to_string(port_));
