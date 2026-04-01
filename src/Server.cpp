@@ -1,5 +1,5 @@
-#include "Server.hpp"
-#include "Database.hpp"
+#include <hello_prototype/Server.hpp>
+#include <hello_prototype/Database.hpp>
 #include <iostream>
 
 Server::Server(asio::io_context& io_context, unsigned short port)

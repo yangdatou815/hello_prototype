@@ -27,6 +27,12 @@ target_include_directories(sqlite3_lib PUBLIC ${sqlite3_SOURCE_DIR})
 set_target_properties(sqlite3_lib PROPERTIES LINKER_LANGUAGE C)
 target_compile_options(sqlite3_lib PRIVATE -w)   # suppress warnings in 3rd party code
 
+# Add public include directory
+include_directories(include)
+
+# Enable CTest at the top level so sub-directory tests are registered
+enable_testing()
+
 # Add source code subdirectory
 add_subdirectory(src)
 

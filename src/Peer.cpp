@@ -1,4 +1,4 @@
-#include "Peer.hpp"
+#include <hello_prototype/Peer.hpp>
 #include <iostream>
 
 Peer::Peer() : state_(PeerState::OFFLINE) {

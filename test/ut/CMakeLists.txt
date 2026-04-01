@@ -10,7 +10,14 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(googletest)
 
+# Enable CTest
+include(GoogleTest)
+enable_testing()
+
 # Add test executable
 add_executable(ut_greeter test_greeter.cpp)
 target_link_libraries(ut_greeter PRIVATE hello_lib GTest::gtest_main)
 target_include_directories(ut_greeter PRIVATE ${googletest_SOURCE_DIR}/googletest/include)
+
+# Register tests with CTest
+add_test(NAME ut_greeter COMMAND ut_greeter)

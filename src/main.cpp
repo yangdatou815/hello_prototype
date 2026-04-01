@@ -4,8 +4,8 @@
 #include <stdexcept>
 #include <asio.hpp>
 #include <asio/signal_set.hpp>
-#include "Server.hpp"
-#include "Client.hpp"
+#include <hello_prototype/Server.hpp>
+#include <hello_prototype/Client.hpp>
 
 static const unsigned short DEFAULT_PORT = 9000;
 

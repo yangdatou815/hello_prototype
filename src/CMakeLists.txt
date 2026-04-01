@@ -8,8 +8,6 @@ add_library(hello_lib
     Database.cpp
 )
 
-target_include_directories(hello_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-
 find_package(OpenSSL REQUIRED)
 target_link_libraries(hello_lib PUBLIC asio_lib OpenSSL::SSL OpenSSL::Crypto sqlite3_lib dl)
 

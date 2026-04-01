@@ -1,6 +1,6 @@
-#include "Peer.hpp"
-#include "Crypto.hpp"
-#include "Database.hpp"
+#include <hello_prototype/Peer.hpp>
+#include <hello_prototype/Crypto.hpp>
+#include <hello_prototype/Database.hpp>
 #include <gtest/gtest.h>
 #include <cstdio>   // std::remove
 
