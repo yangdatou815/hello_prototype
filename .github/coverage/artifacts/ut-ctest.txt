@@ -1,0 +1,8 @@
+Internal ctest changing into directory: /var/fpwork/m7yang/hello_prototype/build-coverage
+Test project /var/fpwork/m7yang/hello_prototype/build-coverage
+    Start 1: ut_greeter
+1/1 Test #1: ut_greeter .......................   Passed    3.18 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) =   3.18 sec

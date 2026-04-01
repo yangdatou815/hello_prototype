@@ -18,6 +18,8 @@ enable_testing()
 add_executable(ut_greeter test_greeter.cpp)
 target_link_libraries(ut_greeter PRIVATE hello_lib GTest::gtest_main)
 target_include_directories(ut_greeter PRIVATE ${googletest_SOURCE_DIR}/googletest/include)
+target_compile_definitions(ut_greeter PRIVATE HELLO_APP_PATH="$<TARGET_FILE:hello_app>")
+target_link_libraries(ut_greeter PRIVATE stdc++fs)
 
 # Register tests with CTest
 add_test(NAME ut_greeter COMMAND ut_greeter)

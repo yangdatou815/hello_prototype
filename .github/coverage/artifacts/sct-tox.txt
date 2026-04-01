@@ -1,0 +1,17 @@
+test-hello: commands_pre[0]> bash /var/fpwork/m7yang/hello_prototype/test/sct/tools/prepare_env.sh
+Preparing SCT environment...
+SCT environment ready.
+test-hello: commands[0]> py.test --junit-xml=/var/fpwork/m7yang/hello_prototype/test/sct/logs/sct-junit.xml
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.0.2, pluggy-1.6.0
+cachedir: .tox/test-hello/.pytest_cache
+rootdir: /var/fpwork/m7yang/hello_prototype/test/sct
+configfile: tox.ini
+collected 4 items
+
+test_hello_app.py ....                                                   [100%]
+
+- generated xml file: /var/fpwork/m7yang/hello_prototype/test/sct/logs/sct-junit.xml -
+============================== 4 passed in 7.05s ===============================
+  test-hello: OK (25.70=setup[17.13]+cmd[1.25,7.32] seconds)
+  congratulations :) (33.90 seconds)
