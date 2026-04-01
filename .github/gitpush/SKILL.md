@@ -5,22 +5,29 @@
 目的
 - 规范本仓库的构建、测试、提交与推送流程，提升代码质量与协作效率。
 
+调用 Review Skill
+- 提交与推送前必须先执行 Review Skill：`.guthub/review/SKILL.md`
+- 调用方式：先执行 review（或使用 `/review`），确认无阻断问题后再继续 `git add`、`git commit`、`git push`。
+
 指令语义（避免歧义）
 - 当用户说“提交代码”时，默认含义为完整提交流程：`git add` + `git commit` + `git push`。
 - 仅当用户明确说明“只本地提交/不要推送”时，才跳过 `git push`。
 - 若推送失败，需输出失败原因（如权限、网络、分支保护）并给出下一步处理建议，而不是静默结束。
 
 快速工作流（提交前必做）
-1. 构建
+1. 代码评审（Review）
+  - 执行：`.guthub/review/SKILL.md`
+  - 结论要求：若存在阻断问题，先修复再提交。
+2. 构建
    - mkdir -p build && cd build
    - cmake ..
    - make -j
-2. 运行测试
+3. 运行测试
    - 在项目根目录运行：ctest --output-on-failure -j
    - 若仓库没有测试用例，确保编译产物（例如 hello_app）已生成并能运行。
-3. 代码格式与静态检查（可选但推荐）
+4. 代码格式与静态检查（可选但推荐）
    - 运行 clang-format、clang-tidy 或团队约定的工具。
-4. 提交并推送
+5. 提交并推送
   - git add -A
   - git commit -m "<type>(scope): short summary"
   - git push origin <current-branch>
